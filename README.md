@@ -1,101 +1,109 @@
-# Spotify 悬浮歌词 for Car+
+<div align="right">
 
-在 Android / OPPO Car+ 车联界面上，为 Spotify 显示同步歌词的轻量悬浮窗。应用只读取 Spotify 的媒体状态与播放进度，不创建或争抢媒体会话，因此不会主动控制、暂停或恢复 Spotify。通知监听服务不可用时，会自动通过 Spotify MediaSession 继续读取播放状态。
+**English** | [简体中文](README.zh-CN.md)
 
-应用会识别 OPPO Car+ 创建的 `OplusMirage` 虚拟屏幕：Car+ 连接时优先把歌词直接显示到车机，断开后自动回到手机屏幕。日常使用可直接从车机打开“Spotify 悬浮歌词”并启动，无需再到手机端重复打开应用。
+</div>
 
-理论上，运行 Android 8.0 或更高版本、能够授予通知使用权和悬浮窗权限，并且 Spotify 可以正常显示媒体通知的 Android 手机或设备，均可在手机端尝试使用。目前仅在 OPPO 手机与 Car+ 车联环境中实际验证；其他品牌手机、Android 设备、车型和车机投屏方案请自行测试，不保证能把歌词显示到车机。CarPlay、Android Auto 官方界面和封闭车联系统通常无法使用。
+# CarLyrics for Spotify
 
-![Car+ 中的 Spotify 悬浮歌词效果](docs/carplus-preview.jpg)
+A lightweight synchronized-lyrics overlay for Spotify on Android and OPPO Car+.
 
-## 功能
+CarLyrics only reads Spotify's media metadata, playback state, and position. It does not create, take over, or control a media session, so it will not pause or resume Spotify. If notification access is temporarily unavailable, it can continue reading playback state through Spotify's MediaSession.
 
-- 无需 Root
-- 读取 Spotify 当前歌曲、播放状态和进度，通知监听不可用时自动改用 MediaSession
-- 同时比较网易云音乐与 QQ 音乐，优先采用逐行翻译较完整的歌词，LRCLIB 作为后备来源
-- 优先显示中文歌词，支持简体中文 / 繁體中文即时切换（默认繁体）
-- 外语歌曲在歌词源提供逐行翻译时显示中文翻译，翻译会跟随简体 / 繁体设置
-- 固定尺寸悬浮窗，针对 Car+ 右侧音乐卡片区域调整高度，避免歌词长度变化导致窗口遮挡播放按钮
-- 自动识别 Car+ 的虚拟屏幕，连接时优先显示到车机，断开后回到手机
-- 自动跟随系统亮色 / 暗色模式，也可在应用内手动切换
-- 不在悬浮窗重复显示歌名和歌手
-- 设置页支持滚动，并可一键复制不含账号、歌名和歌词正文的诊断日志
+The app detects the `OplusMirage` virtual display created by OPPO Car+. While Car+ is connected, the lyrics overlay is placed on the car display; after disconnection, it falls back to the phone. Once initial permissions have been granted, you can launch CarLyrics directly from the Car+ app list without opening it again on the phone.
 
-## 安装与使用
+Android 8.0 or later is required. The phone-only overlay may work on other Android devices that provide notification access, overlay permission, and Spotify media notifications. Car-display support has only been verified with an OPPO phone and Car+; other phones, vehicles, and projection systems are untested and are not guaranteed to work. Official CarPlay and Android Auto interfaces, as well as other closed projection systems, are generally unsupported.
 
-1. 从本仓库的 Releases 下载 APK 并安装。
-2. 首次使用时，打开“Spotify 悬浮歌词”，授予“通知使用权”和“显示在其他应用上层”权限。
-3. 手机连接 Car+，进入车联界面并使用 Spotify 播放歌曲。
-4. 直接从车机的应用列表打开“Spotify 悬浮歌词”，点击“启动悬浮歌词”。
-5. 返回地图与音乐卡片页面，歌词会直接显示在车机上；按需拖动歌词卡片到合适位置。
+![CarLyrics running in OPPO Car+](docs/carplus-preview.jpg)
 
-完成首次授权后，日常使用不需要再打开手机端的悬浮歌词应用。在 Car+ 车机端启动即可。若从手机端启动，Car+ 虚拟屏幕已经建立时，歌词也会自动迁移到车机；同一时间只显示一个歌词窗口，并优先显示在车机。
+## Features
 
-可在应用主页通过“中文歌词”按钮切换简体或繁体，当前歌词会立即变化，无需重新搜索或重启服务。
+- No Root required
+- Reads the current Spotify track, playback state, and position without controlling playback
+- Automatically falls back to Spotify's MediaSession when the notification listener is unavailable
+- Compares NetEase Cloud Music and QQ Music results and prefers the source with more complete line-by-line translations; LRCLIB is used as a fallback
+- Supports Simplified and Traditional Chinese switching in real time (Traditional by default)
+- Displays a Chinese translation below the current foreign-language lyric when the selected source provides one
+- Uses a fixed-size, draggable lyrics card designed for the space below the Car+ music card
+- Detects the Car+ virtual display automatically, prioritizes the car display while connected, and returns to the phone after disconnection
+- Follows the Android light/dark theme automatically, with manual theme selection available
+- Includes a scrollable settings screen and privacy-conscious diagnostic logs
 
-外语歌曲的当前歌词会在原文下方显示逐行中文翻译；上一行和下一行仍只显示原文，以保持悬浮窗尺寸不变。翻译由歌词源提供，没有翻译的数据只显示原文。
+## Installation and Usage
 
-如遇到“等待 Spotify”或连接异常，可点击“重新连接 Spotify”；仍无法恢复时，点击“复制诊断日志”并将内容提交到 Issue。诊断日志不记录 Spotify 账号、歌名、歌手、歌词正文或完整播放历史。
+1. Download and install the APK from [Releases](https://github.com/Phinsin666/CarLyricsForSpotify/releases).
+2. On first use, grant **Notification access** and **Display over other apps** permission.
+3. Connect the phone to Car+, enter the Car+ interface, and start playing a track in Spotify.
+4. Open **Spotify Floating Lyrics** directly from the Car+ app list and tap **Start floating lyrics**.
+5. Return to the map and music-card screen. The lyrics card should appear on the car display and can be dragged into position.
 
-应用需要网络连接来查询歌词。首次匹配某首歌时可能会有短暂延迟。
+After the initial permission setup, normal use does not require opening CarLyrics on the phone. Launching it from Car+ is sufficient. Starting it on the phone also works when the Car+ virtual display already exists: the single overlay window will migrate to and prioritize the car display.
 
-> 使用前请阅读 [使用须知](NOTICE.md)。驾驶过程中请勿操作手机或调试应用；请在安全停车后完成安装、授权和设置。
+Use the **Chinese lyrics** setting to switch between Simplified and Traditional Chinese. Existing lyrics update immediately; no new search or service restart is required.
 
-## 权限说明
+For foreign-language songs, only the current line includes its Chinese translation so the overlay keeps a stable size. Previous and next lines remain in the original language. If neither lyrics source provides a translation, only the original lyrics are shown.
 
-- `通知使用权`：读取 Spotify 媒体通知中的歌曲信息、播放状态与进度。
-- `悬浮窗`：在 Car+ 车联界面上显示歌词。
-- `网络访问`：从歌词服务查询歌词。
-- `前台服务 / 通知`：让歌词服务在后台持续运行。
+If the app remains on “Waiting for Spotify” or loses its connection, use **Reconnect Spotify**. If the issue persists, copy the diagnostic log and include it in a GitHub Issue. Logs do not include Spotify account data, track titles, artist names, lyric text, or complete playback history.
 
-应用不会申请 Root，不会读取 Spotify 账号密码，也不会上传用户的播放历史。
+An internet connection is required to retrieve lyrics, and the first lookup for a track may take a moment.
 
-## 从源码构建
+> Read [Important Notes](NOTICE.md) before use. Install, authorize, configure, and troubleshoot the app only while safely parked. Do not operate a phone or debug the app while driving.
 
-要求：JDK 17、Android SDK 35。
+## Permissions
+
+- **Notification access** — reads Spotify's media notification metadata, playback state, and position.
+- **Display over other apps** — displays the lyrics card over Car+ or other Android apps.
+- **Network access** — retrieves synchronized lyrics from supported providers.
+- **Foreground service / notifications** — keeps the lyrics service running in the background.
+- **Battery-optimization exemption (optional)** — improves background reliability on systems with aggressive process management.
+
+CarLyrics does not request Root access, ask for Spotify credentials, or upload listening history.
+
+## Build from Source
+
+Requirements: JDK 17 and Android SDK 35.
 
 ```bash
 ./gradlew assembleDebug
 ```
 
-生成文件位于 `app/build/outputs/apk/debug/`。
+The APK is generated under `app/build/outputs/apk/debug/`.
 
-## 已知限制
+## Known Limitations
 
-- 手机端理论要求为 Android 8.0 或更高版本，并能授予通知使用权、悬浮窗权限及网络访问权限；部分系统的后台限制可能影响持续运行。
-- 目前仅在 OPPO 手机与 Car+ 车联场景中实际验证，并针对 Car+ 的 `OplusMirage` 虚拟屏幕做了适配；其他品牌手机、Android 设备、车型或车机投屏环境请自行测试，不保证兼容。
-- 手机端能够显示不代表其他车机界面一定能够显示；车机端需要存在应用可识别并可创建悬浮窗的 Android 虚拟屏幕。
-- 应用包名为 `cmccwm.mobilemusic`，用于适配 Car+ 的音乐应用识别；它可能与使用相同包名的应用冲突。
-- 网易云音乐和 QQ 音乐歌词接口并非官方公开 API，服务端变更后可能失效；届时会自动尝试 LRCLIB。
-- 歌词匹配依赖歌名、歌手和时长；混音版、现场版或同名歌曲可能匹配不到或匹配错误。
-- 中文翻译取决于歌词源是否提供逐行翻译；LRCLIB 通常仅提供原文，因此并非所有外语歌曲都有翻译。
+- Android 8.0 or later is required. Some vendor background restrictions may still stop the service.
+- Car-display support has only been verified with an OPPO phone and Car+. The app includes specific handling for Car+'s `OplusMirage` virtual display.
+- A working phone overlay does not guarantee support on another car display. The projection system must expose an Android display on which the app can create an overlay window.
+- The application ID is `cmccwm.mobilemusic` for Car+ music-app recognition. Installation may conflict with another app using the same package name.
+- NetEase Cloud Music and QQ Music lyric endpoints used by this project are not official public APIs and may change or stop working. LRCLIB is used as a fallback.
+- Lyric matching depends on the track title, artist, and duration. Live versions, remixes, and tracks with identical names may be missing or mismatched.
+- Chinese translations are only available when a lyrics provider supplies synchronized translations. LRCLIB commonly provides original lyrics only.
 
-## 歌词与版权
+## Lyrics and Copyright
 
-本项目只提供歌词检索和显示功能，不随源码分发歌词内容。歌词版权归原作者及相应权利人所有。请遵守所在地法律和各服务的使用条款。
+This project provides lyric lookup and display functionality and does not distribute a lyrics database. Lyrics remain the property of their respective authors and rights holders. Users are responsible for complying with local laws and the applicable service terms.
 
-Spotify、QQ 音乐、网易云音乐及其名称、图标和商标归各自权利人所有。本项目是非官方的社区项目，与上述平台及 OPPO 没有隶属、授权或合作关系。
+Spotify, QQ Music, NetEase Cloud Music, OPPO, Car+, and their names, icons, and trademarks belong to their respective owners. This is an independent, unofficial community project and is not affiliated with, authorized by, or endorsed by those companies.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Phinsin666/CarLyrics&type=Date)](https://star-history.com/#Phinsin666/CarLyrics&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Phinsin666/CarLyricsForSpotify&type=Date)](https://star-history.com/#Phinsin666/CarLyricsForSpotify&Date)
 
-## 支持项目
+## Support the Project
 
-本项目完全开源免费。如果它对你有帮助，可以为项目点一个 Star；也可以自愿请作者喝杯咖啡。赞赏不构成购买、订阅或服务承诺。
+CarLyrics is free and open source. If it helps you, consider starring the repository. Donations are entirely optional and do not constitute a purchase, subscription, or service commitment.
 
 <table>
   <tr>
-    <th>支付宝</th>
-    <th>微信支付</th>
+    <th>Alipay</th>
+    <th>WeChat Pay</th>
   </tr>
   <tr>
-    <td><img src="docs/donate-alipay.jpg" alt="支付宝收款码" width="360"></td>
-    <td><img src="docs/donate-wechat.jpg" alt="微信收款码" width="360"></td>
+    <td><img src="docs/donate-alipay.jpg" alt="Alipay donation QR code" width="360"></td>
+    <td><img src="docs/donate-wechat.jpg" alt="WeChat Pay donation QR code" width="360"></td>
   </tr>
 </table>
 
-## 许可证
+## License
 
-源代码以 [MIT License](LICENSE) 开源。
-
+Released under the [MIT License](LICENSE).

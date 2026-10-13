@@ -1,44 +1,50 @@
-# 使用须知
+<div align="right">
 
-使用、修改或分发本项目之前，请注意以下事项。
+**English** | [简体中文](NOTICE.zh-CN.md)
 
-## 行车安全
+</div>
 
-- 请在安全停车后安装应用、授予权限、调整悬浮窗位置或排查问题。
-- 驾驶过程中不要操作手机或长时间注视歌词。使用者应自行遵守当地交通法规。
-- 本项目不保证适用于所有车型、车机、投屏方案或驾驶场景。
+# Important Notes
 
-## 兼容性
+Please read the following before using, modifying, or distributing this project.
 
-- 手机端理论要求为 Android 8.0 或更高版本，并能授予通知使用权、悬浮窗权限及网络访问权限；部分系统的后台限制可能影响持续运行。
-- 本项目目前仅在 OPPO 手机与 Car+ 车联环境中实际验证，并针对 Car+ 的 `OplusMirage` 虚拟屏幕做了适配；其他品牌手机、Android 设备、车型和车机投屏方案请自行测试，不保证兼容。
-- Car+ 连接时，应用会优先把单个歌词悬浮窗显示到车机虚拟屏幕，断开后回到手机屏幕。其他环境只有在应用能够访问其 Android 虚拟屏幕并创建悬浮窗时才可能显示；CarPlay、Android Auto 官方界面以及封闭系统通常不支持。
-- 应用包名为 `cmccwm.mobilemusic`，用于适配特定车联环境，可能与采用相同包名的应用发生安装冲突。
-- 系统更新、Spotify 更新、车联应用更新或厂商后台限制都可能影响功能。
+## Driving Safety
 
-## 权限与隐私
+- Install the app, grant permissions, position the overlay, and troubleshoot only while safely parked.
+- Do not operate a phone or look at lyrics for extended periods while driving. Users are responsible for following local traffic laws.
+- This project does not guarantee suitability for every vehicle, head unit, projection system, or driving scenario.
 
-- 通知使用权仅用于读取 Spotify 媒体通知中的歌曲名称、歌手、播放状态和进度，但 Android 授予的是系统级通知访问权限。请只安装来自本仓库或你自行编译的版本。
-- 通知监听服务不可用时，应用会通过 Android MediaSession 读取 Spotify 的当前媒体状态；应用不会创建、接管或控制媒体会话。
-- 悬浮窗权限用于在其他应用上方显示歌词。
-- 应用不会要求 Spotify 密码，不包含账号登录功能，也不会上传播放历史。
-- 停止使用时，可在系统设置中撤销通知使用权和悬浮窗权限。
+## Compatibility
 
-## 歌词服务与版权
+- Android 8.0 or later is required, together with notification access, overlay permission, and network access. Vendor background restrictions may still interrupt the service.
+- Car-display behavior has only been verified with an OPPO phone and Car+. The app includes specific support for Car+'s `OplusMirage` virtual display. Other phones, Android devices, vehicles, and projection systems are untested and are not guaranteed to work.
+- While Car+ is connected, the app prioritizes the car's virtual display for its single overlay window. It returns to the phone after disconnection. Other systems can only work if they expose an Android display on which the app may create an overlay. Official CarPlay and Android Auto interfaces and other closed systems are generally unsupported.
+- The application ID is `cmccwm.mobilemusic` for compatibility with Car+ music-app recognition. It may conflict with another installed app using the same package name.
+- Android, Spotify, Car+, or vendor system updates may affect compatibility.
 
-- 应用会比较网易云音乐与 QQ 音乐的歌词及翻译完整度，并以 LRCLIB 作为后备来源；前两者使用的是非官方公开接口，随时可能变更、限流或停止工作。
-- 歌词可能缺失、延迟、匹配错误或与实际版本不同，不应依赖其进行专业或商业用途。
-- 外语歌词的中文翻译仅在歌词源提供逐行翻译时显示，并非所有歌曲都有翻译。
-- 本项目不随源码分发歌词数据库。歌词及相关内容的版权归原作者和相应权利人所有。
-- 使用者应遵守所在地法律以及 Spotify、QQ 音乐、网易云音乐、LRCLIB 等服务的条款。
+## Permissions and Privacy
 
-## 诊断日志
+- Notification access is used only to read Spotify track metadata, playback state, and position. Android grants this as system-wide notification access, so install the app only from this repository or from a build you created yourself.
+- If the notification listener is unavailable, the app may read Spotify's current state through Android MediaSession. It does not create, take over, or control a media session.
+- Overlay permission is used to display lyrics above Car+ or other apps.
+- The app does not request Spotify credentials, include account login, or upload listening history.
+- You can revoke notification access and overlay permission in Android Settings when you stop using the app.
 
-- 应用可生成本地诊断日志，用于排查通知监听、MediaSession、悬浮服务和歌词请求状态。
-- 诊断日志不记录 Spotify 账号、歌名、歌手、歌词正文或完整播放历史；用户可自行复制并决定是否提交。
+## Lyrics Services and Copyright
 
-## 非官方声明
+- The app compares NetEase Cloud Music and QQ Music lyric and translation coverage, with LRCLIB as a fallback. The first two integrations use unofficial endpoints that may change, become rate-limited, or stop working.
+- Lyrics can be missing, delayed, or matched to a different version of a track and should not be relied on for professional or commercial purposes.
+- Chinese translation is shown only when a provider supplies synchronized line-by-line translations; not every song has one.
+- This project does not distribute a lyrics database. Lyrics and related content remain the property of their respective authors and rights holders.
+- Users are responsible for complying with local laws and the terms of Spotify, QQ Music, NetEase Cloud Music, LRCLIB, and other services.
 
-Spotify、QQ 音乐、网易云音乐、OPPO、Car+ 及其名称、图标和商标归各自权利人所有。本项目是独立的非官方社区项目，与这些公司或服务没有隶属、授权、认可或合作关系。
+## Diagnostic Logs
 
-本软件按 MIT License 以“现状”提供，不承诺持续可用、完全准确或适合特定用途。
+- The app can generate local diagnostic logs for notification-listener, MediaSession, overlay-service, and lyric-request troubleshooting.
+- Logs do not contain Spotify account details, track titles, artist names, lyric text, or complete playback history. Users decide whether to copy and submit them.
+
+## Unofficial Project
+
+Spotify, QQ Music, NetEase Cloud Music, OPPO, Car+, and their names, icons, and trademarks belong to their respective owners. This is an independent, unofficial community project and is not affiliated with, authorized by, endorsed by, or partnered with any of them.
+
+The software is provided “as is” under the MIT License, without a promise of continued availability, complete accuracy, or fitness for a particular purpose.
