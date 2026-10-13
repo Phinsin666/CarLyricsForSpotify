@@ -78,6 +78,7 @@ public final class SpotifyNotificationListener extends NotificationListenerServi
         super.onListenerConnected();
         listenerConnected = true;
         DiagnosticLog.add(this, "通知监听服务已连接");
+        LyricsOverlayService.recoverIfEnabled(this, "通知监听已连接");
         handler.removeCallbacks(rescan);
         scanActive();
         handler.postDelayed(rescan, RESCAN_INTERVAL_MS);
@@ -104,6 +105,7 @@ public final class SpotifyNotificationListener extends NotificationListenerServi
 
     @Override public void onNotificationPosted(StatusBarNotification sbn) {
         if (SPOTIFY.equals(sbn.getPackageName())) {
+            LyricsOverlayService.recoverIfEnabled(this, "收到 Spotify 通知");
             boolean attached = attach(sbn.getNotification());
             DiagnosticLog.add(this, "收到 Spotify 通知，媒体会话令牌=" + attached);
         }

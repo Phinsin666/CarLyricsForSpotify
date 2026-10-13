@@ -30,18 +30,45 @@ final class LrcLibClient {
     }
 
     static Result fetch(String title, String artist, String album, long durationMs) throws Exception {
+        SourceLyrics netease = null;
+        SourceLyrics qq = null;
         try {
-            SourceLyrics netease = fetchNetEase(title, artist, durationMs);
-            if (!netease.lrc.isEmpty()) return new Result(normalizeTimestamp(netease.lrc),
-                    normalizeTimestamp(netease.translatedLrc), "网易云音乐");
+            netease = fetchNetEase(title, artist, durationMs);
         } catch (Exception ignored) { }
         try {
-            SourceLyrics qq = fetchQqMusic(title, artist, durationMs);
-            if (!qq.lrc.isEmpty()) return new Result(normalizeTimestamp(qq.lrc),
-                    normalizeTimestamp(qq.translatedLrc), "QQ音乐");
+            qq = fetchQqMusic(title, artist, durationMs);
         } catch (Exception ignored) { }
+
+        // Do not stop at the first source that merely has original lyrics. Some NetEase
+        // tracks have an empty or partial tlyric while QQ has a complete translation (and
+        // vice versa). Prefer the source with the most usable Chinese translation lines.
+        SourceLyrics preferred = betterTranslatedSource(netease, qq);
+        if (preferred != null && !preferred.lrc.isEmpty()) {
+            String source = preferred == qq ? "QQ音乐" : "网易云音乐";
+            return new Result(normalizeTimestamp(preferred.lrc),
+                    normalizeTimestamp(preferred.translatedLrc), source);
+        }
         String lrclib = fetchLrcLib(title, artist, album, durationMs);
         return new Result(normalizeTimestamp(lrclib), "", "LRCLIB");
+    }
+
+    private static SourceLyrics betterTranslatedSource(SourceLyrics first, SourceLyrics second) {
+        boolean firstHasLyrics = first != null && !first.lrc.isEmpty();
+        boolean secondHasLyrics = second != null && !second.lrc.isEmpty();
+        if (!firstHasLyrics) return secondHasLyrics ? second : null;
+        if (!secondHasLyrics) return first;
+        int firstScore = translationLineCount(first.translatedLrc);
+        int secondScore = translationLineCount(second.translatedLrc);
+        return secondScore > firstScore ? second : first;
+    }
+
+    private static int translationLineCount(String lrc) {
+        if (lrc == null || lrc.isEmpty()) return 0;
+        int count = 0;
+        for (String line : lrc.split("\\n")) {
+            if (line.matches(".*\\[\\d{1,3}:\\d{2}(?:\\.\\d{1,3})?\\].*") && containsCjk(line)) count++;
+        }
+        return count;
     }
 
     private static SourceLyrics fetchNetEase(String title, String artist, long durationMs) throws Exception {

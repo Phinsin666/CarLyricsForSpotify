@@ -13,9 +13,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.Display;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -63,6 +65,10 @@ public final class MainActivity extends Activity {
         start.setOnClickListener(v -> startOverlay());
         addButton(root, start, 10);
 
+        Button background = button("4. 允许后台持续运行");
+        background.setOnClickListener(v -> openBackgroundSettings());
+        addButton(root, background, 10);
+
         theme = button("");
         theme.setOnClickListener(v -> cycleTheme());
         addButton(root, theme, 10);
@@ -72,7 +78,7 @@ public final class MainActivity extends Activity {
         addButton(root, chineseScript, 10);
 
         Button stop = button("停止悬浮歌词");
-        stop.setOnClickListener(v -> stopService(new Intent(this, LyricsOverlayService.class)));
+        stop.setOnClickListener(v -> LyricsOverlayService.requestStop(this));
         addButton(root, stop, 10);
 
         Button reconnect = button("重新连接 Spotify");
@@ -100,11 +106,16 @@ public final class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != getPackageManager().PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 42);
         }
-        Intent intent = new Intent(this, LyricsOverlayService.class);
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent); else startService(intent);
+        Display display = getDisplay();
+        int displayId = display == null ? Display.DEFAULT_DISPLAY : display.getDisplayId();
+        LyricsOverlayService.requestStart(this, displayId);
     }
 
-    @Override protected void onResume() { super.onResume(); handler.post(refresh); }
+    @Override protected void onResume() {
+        super.onResume();
+        LyricsOverlayService.recoverIfEnabled(this, "应用回到前台");
+        handler.post(refresh);
+    }
     @Override protected void onPause() { handler.removeCallbacks(refresh); super.onPause(); }
 
     private void updateStatus() {
@@ -121,6 +132,7 @@ public final class MainActivity extends Activity {
                 + "\n" + (overlay ? "✓ 悬浮窗权限" : "⚠ 未授予悬浮窗权限")
                 + "\n" + spotifyConnection
                 + "\n" + (LyricsOverlayService.isRunning() ? "✓ 悬浮歌词运行中" : "○ 悬浮歌词未启动")
+                + "\n" + (isIgnoringBatteryOptimizations() ? "✓ 已允许后台持续运行" : "⚠ 建议允许后台持续运行，避免被系统关闭")
                 + (TextUtils.isEmpty(now) ? "" : "\n" + now));
         updateThemeLabel();
         updateChineseScriptLabel();
@@ -165,6 +177,21 @@ public final class MainActivity extends Activity {
     private boolean isListenerEnabled() {
         String flat = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
         return flat != null && flat.contains(new ComponentName(this, SpotifyNotificationListener.class).flattenToString());
+    }
+
+    private boolean isIgnoringBatteryOptimizations() {
+        PowerManager manager = (PowerManager) getSystemService(POWER_SERVICE);
+        return manager != null && manager.isIgnoringBatteryOptimizations(getPackageName());
+    }
+
+    private void openBackgroundSettings() {
+        try {
+            startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:" + getPackageName())));
+        } catch (Throwable ignored) {
+            startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:" + getPackageName())));
+        }
     }
 
     private void copyDiagnostics() {

@@ -13,8 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -167,10 +165,10 @@ final class BridgeState {
         ArrayList<LyricLine> result = new ArrayList<>();
         List<TimedText> originals = parseTimedText(lrc);
         List<TimedText> translations = parseTimedText(translatedLrc);
-        Map<Long, String> translatedByTime = new HashMap<>();
-        for (TimedText line : translations) translatedByTime.put(line.timeMs, line.text);
-        for (TimedText original : originals) {
-            String translated = closestTranslation(translatedByTime, original.timeMs);
+        String[] matchedTranslations = matchTranslations(originals, translations);
+        for (int originalIndex = 0; originalIndex < originals.size(); originalIndex++) {
+            TimedText original = originals.get(originalIndex);
+            String translated = matchedTranslations[originalIndex];
             if (!containsCjk(translated) || normalizeText(translated).equals(normalizeText(original.text))) translated = "";
             String traditional = TO_TRADITIONAL.transliterate(original.text);
             if (isCreditLine(traditional)) continue;
@@ -212,16 +210,34 @@ final class BridgeState {
         return result;
     }
 
-    private static String closestTranslation(Map<Long, String> translations, long timeMs) {
-        String exact = translations.get(timeMs);
-        if (exact != null) return exact;
-        long bestDelta = 501L;
-        String best = "";
-        for (Map.Entry<Long, String> entry : translations.entrySet()) {
-            long delta = Math.abs(entry.getKey() - timeMs);
-            if (delta < bestDelta) { bestDelta = delta; best = entry.getValue(); }
+    private static String[] matchTranslations(List<TimedText> originals, List<TimedText> translations) {
+        String[] matched = new String[originals.size()];
+        boolean[] used = new boolean[translations.size()];
+        // Reserve exact/near-exact lines first so a sparse translation cannot be stolen
+        // by the preceding original line. Then fill timestamp drift up to 3.5 seconds.
+        matchTranslationPass(originals, translations, matched, used, 500L);
+        matchTranslationPass(originals, translations, matched, used, 3500L);
+        for (int i = 0; i < matched.length; i++) if (matched[i] == null) matched[i] = "";
+        return matched;
+    }
+
+    private static void matchTranslationPass(List<TimedText> originals, List<TimedText> translations,
+                                             String[] matched, boolean[] used, long toleranceMs) {
+        for (int originalIndex = 0; originalIndex < originals.size(); originalIndex++) {
+            if (matched[originalIndex] != null) continue;
+            int bestIndex = -1;
+            long bestDelta = toleranceMs + 1L;
+            for (int translationIndex = 0; translationIndex < translations.size(); translationIndex++) {
+                TimedText candidate = translations.get(translationIndex);
+                if (used[translationIndex] || !containsCjk(candidate.text)) continue;
+                long delta = Math.abs(candidate.timeMs - originals.get(originalIndex).timeMs);
+                if (delta < bestDelta) { bestDelta = delta; bestIndex = translationIndex; }
+            }
+            if (bestIndex >= 0) {
+                used[bestIndex] = true;
+                matched[originalIndex] = translations.get(bestIndex).text;
+            }
         }
-        return best;
     }
 
     private static boolean hasTranslation(List<LyricLine> lines) {
