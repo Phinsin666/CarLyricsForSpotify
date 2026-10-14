@@ -98,7 +98,10 @@ final class BridgeState {
             mediaId = newId;
             lines = Collections.emptyList();
             status = "正在匹配歌词：" + title;
-            fetchLyrics(newId, title, artist, album, duration);
+            // Keep display fallbacks (for example "未知歌手") out of lyric queries.
+            // Some Spotify releases genuinely expose an empty artist/album; searching
+            // the provider for the UI fallback text prevents otherwise exact matches.
+            fetchLyrics(newId, newTitle, newArtist, newAlbum, newDuration);
         }
     }
 

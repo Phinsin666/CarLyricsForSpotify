@@ -9,6 +9,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Multi-source synchronized lyric lookup. Kept under the original class name so updates stay small. */
 final class LrcLibClient {
@@ -26,6 +28,15 @@ final class LrcLibClient {
         SourceLyrics(String lrc, String translatedLrc) {
             this.lrc = lrc == null ? "" : lrc.trim();
             this.translatedLrc = translatedLrc == null ? "" : translatedLrc.trim();
+        }
+    }
+
+    private static final class SongCandidate {
+        final JSONObject song;
+        final long score;
+        SongCandidate(JSONObject song, long score) {
+            this.song = song;
+            this.score = score;
         }
     }
 
@@ -72,51 +83,75 @@ final class LrcLibClient {
     }
 
     private static SourceLyrics fetchNetEase(String title, String artist, long durationMs) throws Exception {
-        Uri search = Uri.parse("https://music.163.com/api/search/get/web").buildUpon()
-                .appendQueryParameter("s", searchWords(title, artist))
-                .appendQueryParameter("type", "1").appendQueryParameter("offset", "0")
-                .appendQueryParameter("total", "true").appendQueryParameter("limit", "10").build();
-        JSONObject root = getObject(search.toString(), false, "https://music.163.com/");
-        JSONObject result = root == null ? null : root.optJSONObject("result");
-        JSONArray songs = result == null ? null : result.optJSONArray("songs");
-        JSONObject best = chooseSong(songs, title, artist, durationMs, true);
-        if (best == null) return new SourceLyrics("", "");
-        long id = best.optLong("id", 0);
-        if (id == 0) return new SourceLyrics("", "");
-        Uri lyricUrl = Uri.parse("https://music.163.com/api/song/lyric").buildUpon()
-                .appendQueryParameter("id", Long.toString(id)).appendQueryParameter("lv", "-1")
-                .appendQueryParameter("kv", "-1").appendQueryParameter("tv", "-1").build();
-        JSONObject lyricRoot = getObject(lyricUrl.toString(), false, "https://music.163.com/");
-        JSONObject lrc = lyricRoot == null ? null : lyricRoot.optJSONObject("lrc");
-        JSONObject translated = lyricRoot == null ? null : lyricRoot.optJSONObject("tlyric");
-        return new SourceLyrics(lrc == null ? "" : lrc.optString("lyric", ""),
-                translated == null ? "" : translated.optString("lyric", ""));
+        for (String words : searchQueries(title, artist)) {
+            Uri search = Uri.parse("https://music.163.com/api/search/get/web").buildUpon()
+                    .appendQueryParameter("s", words)
+                    .appendQueryParameter("type", "1").appendQueryParameter("offset", "0")
+                    .appendQueryParameter("total", "true").appendQueryParameter("limit", "10").build();
+            JSONObject root;
+            try {
+                root = getObject(search.toString(), false, "https://music.163.com/");
+            } catch (Exception ignored) { continue; }
+            JSONObject result = root == null ? null : root.optJSONObject("result");
+            JSONArray songs = result == null ? null : result.optJSONArray("songs");
+            List<JSONObject> candidates = chooseSongs(songs, title, artist, durationMs, true);
+            for (int i = 0; i < Math.min(5, candidates.size()); i++) {
+                long id = candidates.get(i).optLong("id", 0);
+                if (id == 0) continue;
+                Uri lyricUrl = Uri.parse("https://music.163.com/api/song/lyric").buildUpon()
+                        .appendQueryParameter("id", Long.toString(id)).appendQueryParameter("lv", "-1")
+                        .appendQueryParameter("kv", "-1").appendQueryParameter("tv", "-1").build();
+                JSONObject lyricRoot;
+                try {
+                    lyricRoot = getObject(lyricUrl.toString(), false, "https://music.163.com/");
+                } catch (Exception ignored) { continue; }
+                JSONObject lrc = lyricRoot == null ? null : lyricRoot.optJSONObject("lrc");
+                JSONObject translated = lyricRoot == null ? null : lyricRoot.optJSONObject("tlyric");
+                SourceLyrics lyrics = new SourceLyrics(lrc == null ? "" : lrc.optString("lyric", ""),
+                        translated == null ? "" : translated.optString("lyric", ""));
+                if (hasTimedLyrics(lyrics.lrc)) return lyrics;
+            }
+        }
+        return new SourceLyrics("", "");
     }
 
     private static SourceLyrics fetchQqMusic(String title, String artist, long durationMs) throws Exception {
-        Uri search = Uri.parse("https://c.y.qq.com/soso/fcgi-bin/client_search_cp").buildUpon()
-                .appendQueryParameter("w", searchWords(title, artist)).appendQueryParameter("p", "1")
-                .appendQueryParameter("n", "10").appendQueryParameter("format", "json").build();
-        JSONObject root = getObject(search.toString(), false, "https://y.qq.com/");
-        JSONObject data = root == null ? null : root.optJSONObject("data");
-        JSONObject song = data == null ? null : data.optJSONObject("song");
-        JSONArray songs = song == null ? null : song.optJSONArray("list");
-        JSONObject best = chooseSong(songs, title, artist, durationMs, false);
-        if (best == null) return new SourceLyrics("", "");
-        String mid = best.optString("songmid", "");
-        if (mid.isEmpty()) return new SourceLyrics("", "");
-        Uri lyricUrl = Uri.parse("https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg").buildUpon()
-                .appendQueryParameter("songmid", mid).appendQueryParameter("format", "json")
-                .appendQueryParameter("nobase64", "1").build();
-        JSONObject lyricRoot = getObject(lyricUrl.toString(), false, "https://y.qq.com/");
-        return new SourceLyrics(lyricRoot == null ? "" : decodeEntities(lyricRoot.optString("lyric", "")),
-                lyricRoot == null ? "" : decodeEntities(lyricRoot.optString("trans", "")));
+        for (String words : searchQueries(title, artist)) {
+            Uri search = Uri.parse("https://c.y.qq.com/soso/fcgi-bin/client_search_cp").buildUpon()
+                    .appendQueryParameter("w", words).appendQueryParameter("p", "1")
+                    .appendQueryParameter("n", "10").appendQueryParameter("format", "json").build();
+            JSONObject root;
+            try {
+                root = getObject(search.toString(), false, "https://y.qq.com/");
+            } catch (Exception ignored) { continue; }
+            JSONObject data = root == null ? null : root.optJSONObject("data");
+            JSONObject song = data == null ? null : data.optJSONObject("song");
+            JSONArray songs = song == null ? null : song.optJSONArray("list");
+            List<JSONObject> candidates = chooseSongs(songs, title, artist, durationMs, false);
+            for (int i = 0; i < Math.min(5, candidates.size()); i++) {
+                String mid = candidates.get(i).optString("songmid", "");
+                if (mid.isEmpty()) continue;
+                Uri lyricUrl = Uri.parse("https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg").buildUpon()
+                        .appendQueryParameter("songmid", mid).appendQueryParameter("format", "json")
+                        .appendQueryParameter("nobase64", "1").appendQueryParameter("g_tk", "5381").build();
+                JSONObject lyricRoot;
+                try {
+                    lyricRoot = getObject(lyricUrl.toString(), false, "https://y.qq.com/");
+                } catch (Exception ignored) { continue; }
+                SourceLyrics lyrics = new SourceLyrics(
+                        lyricRoot == null ? "" : decodeEntities(lyricRoot.optString("lyric", "")),
+                        lyricRoot == null ? "" : decodeEntities(lyricRoot.optString("trans", "")));
+                if (hasTimedLyrics(lyrics.lrc)) return lyrics;
+            }
+        }
+        return new SourceLyrics("", "");
     }
 
-    private static JSONObject chooseSong(JSONArray songs, String wantedTitle, String wantedArtist, long durationMs, boolean netease) {
-        if (songs == null) return null;
-        JSONObject best = null;
-        long bestScore = Long.MAX_VALUE;
+    private static List<JSONObject> chooseSongs(JSONArray songs, String wantedTitle, String wantedArtist,
+                                                long durationMs, boolean netease) {
+        ArrayList<SongCandidate> matches = new ArrayList<>();
+        ArrayList<JSONObject> ordered = new ArrayList<>();
+        if (songs == null) return ordered;
         String targetTitle = normalizeMatch(wantedTitle);
         String targetArtist = normalizeMatch(wantedArtist);
         for (int i = 0; i < songs.length(); i++) {
@@ -137,9 +172,15 @@ final class LrcLibClient {
             String normalizedCandidateArtist = normalizeMatch(candidateArtist);
             if (!targetArtist.isEmpty() && !normalizedCandidateArtist.isEmpty()
                     && (targetArtist.contains(normalizedCandidateArtist) || normalizedCandidateArtist.contains(targetArtist))) score -= 15000L;
-            if (score < bestScore) { best = item; bestScore = score; }
+            matches.add(new SongCandidate(item, score));
         }
-        return best;
+        matches.sort((left, right) -> Long.compare(left.score, right.score));
+        for (SongCandidate match : matches) ordered.add(match.song);
+        return ordered;
+    }
+
+    private static boolean hasTimedLyrics(String lrc) {
+        return lrc != null && lrc.matches("(?s).*\\[\\d{1,3}:\\d{2}(?:\\.\\d{1,3})?\\].*");
     }
 
     private static String fetchLrcLib(String title, String artist, String album, long durationMs) throws Exception {
@@ -179,6 +220,23 @@ final class LrcLibClient {
         String cleanedTitle = clean(title).replaceAll("\\s*[-–—]\\s*", " ");
         String firstArtist = artist == null ? "" : artist.split("[,，/&、]")[0].trim();
         return (cleanedTitle + " " + firstArtist).trim();
+    }
+
+    private static List<String> searchQueries(String title, String artist) {
+        ArrayList<String> queries = new ArrayList<>();
+        addQuery(queries, searchWords(title, artist));
+        String cleanedTitle = clean(title);
+        String[] titleParts = cleanedTitle.split("\\s*[-–—]\\s*", 2);
+        if (titleParts.length > 1) {
+            addQuery(queries, searchWords(titleParts[0], artist));
+            addQuery(queries, titleParts[0].trim());
+        }
+        return queries;
+    }
+
+    private static void addQuery(List<String> queries, String value) {
+        String query = value == null ? "" : value.trim();
+        if (!query.isEmpty() && !queries.contains(query)) queries.add(query);
     }
 
     private static String artistNames(JSONArray artists) {
